@@ -32,3 +32,9 @@ post {
         }
     }
 }
+#https://github.com/heroku/node-js-getting-started.git is is a Git repository for a Node.js application, not a Docker image
+#So to create a Docker image for a Node.js application, we sould typically write a Dockerfile and then build the image using the docker build command.
+#installed jenkins and docker on the same server
+#Grant jenkins user and ubuntu user permisson to docker deamon
+#Installed required plugins in jenkins
+#After that used above a Jenkins pipeline script to automate the process of building and pushing the Docker image
