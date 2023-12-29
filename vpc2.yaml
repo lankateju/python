@@ -188,6 +188,9 @@ Resources:
       Tags:
         - Key: 'Name'
           Value: 'MySecurityGroup'
+#he MySecurityGroup is a security group that allows incoming traffic on ports 80 and 443 (HTTP and HTTPS) from any source. 
+#It is associated with a specific VPC (VPC) and has a descriptive tag for identification. 
+#This security group is typically associated with instances (e.g., web servers) that need to receive HTTP and HTTPS traffic from any IP address.
 
   MySSHSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -202,6 +205,10 @@ Resources:
       Tags:
         - Key: 'Name'
           Value: 'SSH MySecurityGroup'
+#In summary, the MySSHSecurityGroup is a security group specifically designed for allowing SSH access to instances associated with it. 
+#It allows incoming SSH traffic on port 22 from the IP address range specified in the SSHLocation parameter.
+#The security group is associated with a specific VPC (VPC) and has a descriptive tag for identification.
+#This security group is typically associated with instances that need to be accessed via SSH.
 
   WebServerSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
