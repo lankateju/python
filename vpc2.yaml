@@ -35,6 +35,13 @@ Parameters:
     MaxLength: '18'
     MinLength: '9'
     Type: String
+#The SSHLocation parameter allows you to control from which IP addresses SSH access is permitted to the web server. This is a security measure to restrict access to a specific range of IP addresses.
+
+#The use of a regular expression (AllowedPattern) ensures that users enter the IP address in the correct CIDR format, preventing invalid inputs.
+
+#The default value of 0.0.0.0/0 allows SSH access from any IP address by default. You can customize this value during deployment based on your specific security requirements.
+
+#The parameter description (Description) provides clarity to users about the purpose of the parameter, making it easier to understand its role in the overall configuration.
 
 Resources:
   VPC:
