@@ -216,19 +216,6 @@ Resources:
       VpcId: !Ref VPC
 #WebServerSecurityGroup allows HTTP, HTTPS, and SSH traffic from specified security groups within the same VPC. 
 #This is a common configuration for a security group associated with a web server, allowing it to communicate with other instances in a secure manner.
-  DataBaseSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupDescription: 'MyRDSSecurityGroup'
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: '3306'
-          ToPort: '3306'
-          SourceSecurityGroupId: !Ref WebServerSecurityGroup
-      VpcId: !Ref VPC
-      Tags:
-        - Key: 'Name'
-          Value: 'DataBase MySecurityGroup'
 
   ElasticIP:
     Type: 'AWS::EC2::EIP'
