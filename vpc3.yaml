@@ -1,0 +1,319 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Custom VPC with Public and Private Subnets, ALB, and ASG'
+
+Parameters:
+  VpcCidrBlock:
+    Type: String
+    Default: '10.0.0.0/16'
+    Description: 'CIDR block for the VPC'
+
+  PublicSubnet1VpcCidrBlock:
+    Type: String
+    Default: '10.0.0.0/24'
+    Description: 'CIDR block for Public Subnet 1'
+
+  PublicSubnet2VpcCidrBlock:
+    Type: String
+    Default: '10.0.1.0/24'
+    Description: 'CIDR block for Public Subnet 2'
+
+  PrivateSubnet1VpcCidrBlock:
+    Type: String
+    Default: '10.0.2.0/24'
+    Description: 'CIDR block for Private Subnet 1'
+
+  PrivateSubnet2VpcCidrBlock:
+    Type: String
+    Default: '10.0.3.0/24'
+    Description: 'CIDR block for Private Subnet 2'
+
+  SSHLocation:
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: 'Must be a valid IP CIDR range of the form x.x.x.x/x.'
+    Default: 0.0.0.0/0
+    Description: 'The IP address range that can be used to access the web server using SSH.'
+    MaxLength: '18'
+    MinLength: '9'
+    Type: String
+#The SSHLocation parameter allows you to control from which IP addresses SSH access is permitted to the web server. This is a security measure to restrict access to a specific range of IP addresses.
+
+#The use of a regular expression (AllowedPattern) ensures that users enter the IP address in the correct CIDR format, preventing invalid inputs.
+
+#The default value of 0.0.0.0/0 allows SSH access from any IP address by default. You can customize this value during deployment based on your specific security requirements.
+
+#The parameter description (Description) provides clarity to users about the purpose of the parameter, making it easier to understand its role in the overall configuration.
+
+Resources:
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !Ref VpcCidrBlock
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: 'vpc#'
+
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: 'Name'
+          Value: 'InternetGateway'
+
+  AttachGateway:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: !Ref PublicSubnet1VpcCidrBlock
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: 'public subnet1'
+
+  PublicSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: !Ref PublicSubnet2VpcCidrBlock
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: 'public subnet2'
+
+  PrivateSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs '']
+      CidrBlock: !Ref PrivateSubnet1VpcCidrBlock
+      Tags:
+        - Key: Name
+          Value: 'private subnet1'
+
+  PrivateSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs '']
+      CidrBlock: !Ref PrivateSubnet2VpcCidrBlock
+      Tags:
+        - Key: Name
+          Value: 'private subnet2'
+
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: 'Public Route Table'
+
+  PublicSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  PublicSubnet2RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+  PrivateRouteTable1:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: 'Private Route Table 1'
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateSubnet1
+
+  PrivateRouteTable2:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: 'Private Route Table 2'
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: !Ref PrivateSubnet2
+
+  DefaultPrivateRoute1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref NATGateway
+
+  DefaultPrivateRoute2:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref NATGateway
+
+  MySecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'My Security Group'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: '0.0.0.0/0'
+      VpcId: !Ref VPC
+      Tags:
+        - Key: 'Name'
+          Value: 'MySecurityGroup'
+#The MySecurityGroup is a security group that allows incoming traffic on ports 80 and 443 (HTTP and HTTPS) from any source. 
+#It is associated with a specific VPC (VPC) and has a descriptive tag for identification. 
+#This security group is typically associated with instances (e.g., web servers) that need to receive HTTP and HTTPS traffic from any IP address.
+
+  MySSHSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'SSH Security Group'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: !Ref SSHLocation
+      VpcId: !Ref VPC
+      Tags:
+        - Key: 'Name'
+          Value: 'SSH MySecurityGroup'
+#In summary, the MySSHSecurityGroup is a security group specifically designed for allowing SSH access to instances associated with it. 
+#It allows incoming SSH traffic on port 22 from the IP address range specified in the SSHLocation parameter.
+#The security group is associated with a specific VPC (VPC) and has a descriptive tag for identification.
+#This security group is typically associated with instances that need to be accessed via SSH.
+
+  WebServerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'Enable HTTP from 0.0.0.0/0'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          SourceSecurityGroupId: !Ref MySecurityGroup
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          SourceSecurityGroupId: !Ref MySecurityGroup
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          SourceSecurityGroupId: !Ref MySSHSecurityGroup
+      VpcId: !Ref VPC
+#WebServerSecurityGroup allows HTTP, HTTPS, and SSH traffic from specified security groups within the same VPC. 
+#This is a common configuration for a security group associated with a web server, allowing it to communicate with other instances in a secure manner.
+
+
+  ElasticIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: 'vpc'
+
+  NATGateway:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt ElasticIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+#The NAT gateway (NATGateway) and Elastic IP (ElasticIP) resources are added to enable internet access for the private subnets.
+#Default routes are added to the private route tables to route internet-bound traffic through the NAT gateway.
+
+  ALB:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
+    Properties:
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroups:
+        - !Ref WebServerSecurityGroup
+      Tags:
+        - Key: 'Name'
+          Value: 'MyALB'
+
+  TargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: '/'
+      HealthCheckProtocol: 'HTTP'
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200'
+      Port: 80
+      Protocol: 'HTTP'
+      TargetType: 'instance'
+      VpcId: !Ref VPC
+#TargetGroup resource is crucial for configuring how Elastic Load Balancer (ELB) performs health checks on the instances (targets) it distributes traffic to.
+#It ensures that only healthy instances receive traffic, enhancing the reliability and availability of your application. 
+
+  ALBListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: 'forward'
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: 'HTTP'
+
+  LaunchConfig:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    Properties:
+      ImageId: 'ami-0b04bc1995e087ddf'
+      InstanceType: 't2.micro'
+      SecurityGroups:
+        - !Ref WebServerSecurityGroup
+      UserData: !Base64 |
+        #!/bin/bash
+        # Additional user data script for configuring instances
+        # ...
+        #!/bin/bash
+        # Install necessary software
+          sudo apt update
+          sudo apt install openjdk-11-jre
+
+  AutoScalingGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      AvailabilityZones:
+        - !Select [0, !GetAZs '']
+        - !Select [1, !GetAZs '']
+      DesiredCapacity: 2
+      HealthCheckGracePeriod: 300
+      HealthCheckType: EC2
+      LaunchConfigurationName: !Ref LaunchConfig
+      MaxSize: 4
+      MinSize: 2
+      TargetGroupARNs:
+        - !Ref TargetGroup
+      VPCZoneIdentifier:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
