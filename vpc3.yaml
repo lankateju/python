@@ -251,11 +251,15 @@ Resources:
       Subnets:
         - !Ref PublicSubnet1
         - !Ref PublicSubnet2
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
       SecurityGroups:
         - !Ref WebServerSecurityGroup
       Tags:
         - Key: 'Name'
           Value: 'MyALB'
+#sets up an Application Load Balancer (ALB) with the specified configuration.
+#The ALB is deployed in the specified public subnets (PublicSubnet1 and PublicSubnet2) and is associated with the security group (WebServerSecurityGroup). 
 
   TargetGroup:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
@@ -283,6 +287,10 @@ Resources:
       LoadBalancerArn: !Ref ALB
       Port: 80
       Protocol: 'HTTP'
+#sets up an ALB listener that listens on port 80 for incoming HTTP requests. 
+#When a request is received, it forwards the request to the target group (TargetGroup) associated with the ALB.
+#The target group contains the instances that will handle the incoming traffic. 
+#This configuration allows the ALB to efficiently distribute incoming HTTP requests among the instances in the Auto Scaling group.
 
   LaunchConfig:
     Type: 'AWS::AutoScaling::LaunchConfiguration'
@@ -315,5 +323,7 @@ Resources:
       TargetGroupARNs:
         - !Ref TargetGroup
       VPCZoneIdentifier:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
         - !Ref PrivateSubnet1
         - !Ref PrivateSubnet2
