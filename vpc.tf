@@ -1,16 +1,24 @@
+#below setup involved
+#created a vpc with 3 public and 3 private subnets
+#created EC2 instances
+#created security groups for kubernetes
+#created IAM roles,IAM policies,attached Roles
+#created EKS cluster
+#created node group
+
 provider "aws" {
-  region = "ap-south-1"
+  region = "ap-south-2"
 }
 
 // Creating VPC
 resource "aws_vpc" "demo-vpc" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block = "10.11.0.0/16"
 }
 
 // Creating Public Subnets
 resource "aws_subnet" "public_subnet_1" {
   vpc_id     = aws_vpc.demo-vpc.id
-  cidr_block = "10.0.1.0/24"
+  cidr_block = "10.11.4.0/24"
   availability_zone = "ap-south-1a"
   map_public_ip_on_launch = true
 
@@ -21,7 +29,7 @@ resource "aws_subnet" "public_subnet_1" {
 
 resource "aws_subnet" "public_subnet_2" {
   vpc_id     = aws_vpc.demo-vpc.id
-  cidr_block = "10.0.2.0/24"
+  cidr_block = "10.11.5.0/24"
   availability_zone = "ap-south-1b"
   map_public_ip_on_launch = true
 
@@ -32,7 +40,7 @@ resource "aws_subnet" "public_subnet_2" {
 
 resource "aws_subnet" "public_subnet_3" {
   vpc_id     = aws_vpc.demo-vpc.id
-  cidr_block = "10.0.3.0/24"
+  cidr_block = "10.11.6.0/24"
   availability_zone = "ap-south-1c"
   map_public_ip_on_launch = true
 
@@ -84,8 +92,8 @@ resource "aws_route_table_association" "public_subnet_3_association" {
 // Creating Private Subnets
 resource "aws_subnet" "private_subnet_1" {
   vpc_id     = aws_vpc.demo-vpc.id
-  cidr_block = "10.0.4.0/24"
-  availability_zone = "ap-south-1a"
+  cidr_block = "10.11.7.0/24"
+  availability_zone = "ap-south-2a"
 
   tags = {
     Name = "private-subnet-1"
@@ -94,8 +102,8 @@ resource "aws_subnet" "private_subnet_1" {
 
 resource "aws_subnet" "private_subnet_2" {
   vpc_id     = aws_vpc.demo-vpc.id
-  cidr_block = "10.0.5.0/24"
-  availability_zone = "ap-south-1b"
+  cidr_block = "10.11.8.0/24"
+  availability_zone = "ap-south-2b"
 
   tags = {
     Name = "private-subnet-2"
@@ -104,45 +112,14 @@ resource "aws_subnet" "private_subnet_2" {
 
 resource "aws_subnet" "private_subnet_3" {
   vpc_id     = aws_vpc.demo-vpc.id
-  cidr_block = "10.0.6.0/24"
-  availability_zone = "ap-south-1c"
+  cidr_block = "10.11.9.0/24"
+  availability_zone = "ap-south-2c"
 
   tags = {
     Name = "private-subnet-3"
   }
 }
  
-resource "aws_subnet" "private_subnet_4" {
-  vpc_id            = aws_vpc.demo-vpc.id
-  cidr_block        = "10.0.7.0/24"
-  availability_zone = "ap-south-1a"
-
-  tags = {
-    Name = "private-subnet-4"
-  }
-}
-
-resource "aws_subnet" "private_subnet_5" {
-  vpc_id            = aws_vpc.demo-vpc.id
-  cidr_block        = "10.0.8.0/24"
-  availability_zone = "ap-south-1b"
-
-  tags = {
-    Name = "private-subnet-5"
-  }
-}
-
-resource "aws_subnet" "private_subnet_6" {
-  vpc_id            = aws_vpc.demo-vpc.id
-  cidr_block        = "10.0.9.0/24"
-  availability_zone = "ap-south-1c"
-
-  tags = {
-    Name = "private-subnet-6"
-  }
-}
-
-
 // Creating Route Table for Private Subnets
 resource "aws_route_table" "private_rt" {
   vpc_id = aws_vpc.demo-vpc.id
@@ -167,23 +144,6 @@ resource "aws_route_table_association" "private_subnet_3_association" {
   subnet_id      = aws_subnet.private_subnet_3.id
   route_table_id = aws_route_table.private_rt.id
 }
-
-// Associating Private Subnets with the Private Route Table
-resource "aws_route_table_association" "private_subnet_4_association" {
-  subnet_id      = aws_subnet.private_subnet_4.id
-  route_table_id = aws_route_table.private_rt.id
-}
-
-resource "aws_route_table_association" "private_subnet_5_association" {
-  subnet_id      = aws_subnet.private_subnet_5.id
-  route_table_id = aws_route_table.private_rt.id
-}
-
-resource "aws_route_table_association" "private_subnet_6_association" {
-  subnet_id      = aws_subnet.private_subnet_6.id
-  route_table_id = aws_route_table.private_rt.id
-}
-
 
 // Creating Security Group
 resource "aws_security_group" "demo-vpc-sg" {
@@ -217,6 +177,7 @@ resource "aws_nat_gateway" "nat_gateway" {
 }
 
 // Creating an Elastic IP for NAT Gateway
+#Elastic IP for the NAT Gateway, which helps maintain a consistent public IP address for the NAT Gateway instance.
 resource "aws_instance" "nat_instance" {
   ami                    = "ami-0a0f1259dd1c90938"
   instance_type          = "t2.micro"
@@ -391,9 +352,6 @@ resource "aws_eks_cluster" "eks" {
     subnet_ids = [aws_subnet.private_subnet_1.id,
       aws_subnet.private_subnet_2.id,
       aws_subnet.private_subnet_3.id,
-      aws_subnet.private_subnet_4.id,
-      aws_subnet.private_subnet_5.id,
-      aws_subnet.private_subnet_6.id,
     ]
   }
   
@@ -414,9 +372,6 @@ resource "aws_eks_node_group" "backend" {
   subnet_ids = [aws_subnet.private_subnet_1.id,
       aws_subnet.private_subnet_2.id,
       aws_subnet.private_subnet_3.id,
-      aws_subnet.private_subnet_4.id,
-      aws_subnet.private_subnet_5.id,
-      aws_subnet.private_subnet_6.id,
     ]
   capacity_type = "ON_DEMAND"
   disk_size = "20"
@@ -450,8 +405,5 @@ resource "aws_eks_node_group" "backend" {
     subnet_ids = [aws_subnet.private_subnet_1.id,
       aws_subnet.private_subnet_2.id,
       aws_subnet.private_subnet_3.id,
-      aws_subnet.private_subnet_4.id,
-      aws_subnet.private_subnet_5.id,
-      aws_subnet.private_subnet_6.id,
     ]
 }
