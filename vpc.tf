@@ -584,6 +584,8 @@ resource "aws_lb_target_group" "private_tg" {
 
 # ALB Listener for private subnet
 # Creates a listener for the ALB to process incoming traffic on a specified port.
+# Listeners define the rules for routing traffic to target groups. 
+# In this case, it listens on port 80 and directs traffic to the private target group.
 resource "aws_lb_listener" "private_listener" {
   load_balancer_arn = aws_lb.private_alb.arn
   port              = 80
