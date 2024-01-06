@@ -512,6 +512,8 @@ resource "aws_lb_target_group_attachment" "public_asg_attachment" {
 }
 
 # Auto Scaling Group for private subnet
+#Auto Scaling Groups automatically adjust the number of instances in response to changes in demand or other criteria. 
+#This ensures high availability and fault tolerance.
 resource "aws_autoscaling_group" "private_asg" {
   desired_capacity     = 2
   max_size             = 3
@@ -530,6 +532,7 @@ resource "aws_autoscaling_group" "private_asg" {
 }
 
 # Launch Configuration for private ASG
+# The launch configuration specifies settings for instances launched in the Auto Scaling Group, including the Amazon Machine Image (AMI), instance type, security groups, etc.
 resource "aws_launch_configuration" "private_lc" {
   name                 = "private-lc"
   image_id             = "ami-0a0f1259dd1c90938"
@@ -539,6 +542,7 @@ resource "aws_launch_configuration" "private_lc" {
 }
 
 # Application Load Balancer for private subnet
+#  Creates an Application Load Balancer (ALB) for distributing incoming traffic across instances in the private subnets.
 resource "aws_lb" "private_alb" {
   name               = "private-alb"
   internal           = false
@@ -557,6 +561,9 @@ resource "aws_lb" "private_alb" {
 }
 
 # ALB Target Group for private subnet
+# Defines a target group for instances in the private subnets that the ALB routes traffic to.
+# Target groups are used to route traffic to instances based on health checks. 
+# They are an essential component of load balancing in AWS.
 resource "aws_lb_target_group" "private_tg" {
   name        = "private-tg"
   port        = 80
@@ -576,6 +583,7 @@ resource "aws_lb_target_group" "private_tg" {
 }
 
 # ALB Listener for private subnet
+# Creates a listener for the ALB to process incoming traffic on a specified port.
 resource "aws_lb_listener" "private_listener" {
   load_balancer_arn = aws_lb.private_alb.arn
   port              = 80
@@ -594,6 +602,9 @@ resource "aws_lb_listener" "private_listener" {
 }
 
 # ASG Attachment to Target Group for private subnet
+# Attaches the Auto Scaling Group instances to the target group used by the ALB.
+# This ensures that instances launched by the ASG are considered targets for the ALB
+# And traffic is directed to these instances based on the rules defined in the target group.
 resource "aws_lb_target_group_attachment" "private_asg_attachment" {
   target_group_arn = aws_lb_target_group.private_tg.arn
   target_id        = aws_autoscaling_group.private_asg.name
