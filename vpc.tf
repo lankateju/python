@@ -6,11 +6,17 @@
 #created EKS cluster
 #created node group
 
+#This section specifies that we are using the AWS provider and sets the region to "ap-south-1" (Asia Pacific, Mumbai).
+#It tells Terraform where to create and manage resources.
+
 provider "aws" {
   region = "ap-south-2"
 }
 
 // Creating VPC
+#This defines a Virtual Private Cloud (VPC) with an IP address range of "10.11.0.0/16". 
+#The VPC is like a private network in which we'll place our resources.
+
 resource "aws_vpc" "demo-vpc" {
   cidr_block = "10.11.0.0/16"
 }
@@ -50,6 +56,8 @@ resource "aws_subnet" "public_subnet_3" {
 }
 
 // Creating Internet Gateway
+#An internet gateway is created and associated with the VPC. 
+#This allows resources in the VPC to communicate with the internet.
 resource "aws_internet_gateway" "demo-igw" {
   vpc_id = aws_vpc.demo-vpc.id
 
@@ -59,6 +67,7 @@ resource "aws_internet_gateway" "demo-igw" {
 }
 
 // Creating Route Table for Public Subnets
+#setting up a route table for the public subnets, allowing traffic to the internet via the internet gateway.
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.demo-vpc.id
 
@@ -146,6 +155,7 @@ resource "aws_route_table_association" "private_subnet_3_association" {
 }
 
 // Creating Security Group
+#This setup is used for allowing SSH access to instances within the VPC.
 resource "aws_security_group" "demo-vpc-sg" {
   name        = "allow_tls"
   vpc_id      = aws_vpc.demo-vpc.id
