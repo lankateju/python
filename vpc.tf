@@ -411,8 +411,6 @@ resource "aws_eks_node_group" "backend" {
     aws_iam_role_policy_attachment.AmazonEKSWorkerNodePolicy,
     aws_iam_role_policy_attachment.AmazonEKS_CNI_Policy,
     aws_iam_role_policy_attachment.AmazonEC2ContainerRegistryReadOnly,
-    #aws_subnet.pub_sub1,
-    #aws_subnet.pub_sub2,
   ]
    security_group_ids = [aws_security_group.demo-vpc-sg.id]
    vpc_id = aws_vpc.demo-vpc.id
