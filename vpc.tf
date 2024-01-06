@@ -224,6 +224,7 @@ resource "aws_security_group" "worker_node_sg" {
 }
 
 //creating roles,policies and attaching roles
+#IAM Roles for EKS Master and Worker Nodes
 
 resource "aws_iam_role" "master" {
   name = "ed-eks-master"
@@ -343,10 +344,12 @@ resource "aws_iam_instance_profile" "worker" {
   role       = aws_iam_role.worker.name
 }
 
-###############################################################################################################
+#creating an AWS EKS cluster
 resource "aws_eks_cluster" "eks" {
   name = "ed-eks-01"
-  role_arn = aws_iam_role.master.arn
+  role_arn = aws_iam_role.master.arn 
+#Associates the IAM role created earlier (aws_iam_role.master) with the EKS cluster.
+#This role allows the EKS service to manage the cluster.
 
   vpc_config {
     subnet_ids = [aws_subnet.private_subnet_1.id,
@@ -354,7 +357,7 @@ resource "aws_eks_cluster" "eks" {
       aws_subnet.private_subnet_3.id,
     ]
   }
-  
+  #Specifies the subnet IDs in which the EKS cluster will be deployed. In this case, it uses three private subnets
   depends_on = [
     aws_iam_role_policy_attachment.AmazonEKSClusterPolicy,
     aws_iam_role_policy_attachment.AmazonEKSServicePolicy,
@@ -363,7 +366,8 @@ resource "aws_eks_cluster" "eks" {
   ]
 
 }
-#################################################################################################################
+#the creation of the EKS cluster depends on the successful attachment of IAM policies to the IAM role
+# creating an AWS EKS node group
 
 resource "aws_eks_node_group" "backend" {
   cluster_name    = aws_eks_cluster.eks.name
