@@ -6,7 +6,7 @@
 #created EKS cluster
 #created node group
 
-#This section specifies that we are using the AWS provider and sets the region to "ap-south-1" (Asia Pacific, Mumbai).
+#This section specifies that we are using the AWS provider and sets the region to "ap-south-2" (Asia Pacific, Hyderabad).
 #It tells Terraform where to create and manage resources.
 
 provider "aws" {
