@@ -421,3 +421,183 @@ resource "aws_eks_node_group" "backend" {
       aws_subnet.private_subnet_3.id,
     ]
 }
+
+# Auto Scaling Group for public subnet
+resource "aws_autoscaling_group" "public_asg" {
+  desired_capacity     = 2
+  max_size             = 3
+  min_size             = 1
+  vpc_zone_identifier  = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id, aws_subnet.public_subnet_3.id]
+  launch_configuration = aws_launch_configuration.public_lc.id
+
+  tag {
+    key                 = "Name"
+    value               = "public-asg-instance"
+    propagate_at_launch = true
+  }
+
+  health_check_type          = "EC2"
+  health_check_grace_period  = 300
+}
+
+# Launch Configuration for public ASG
+resource "aws_launch_configuration" "public_lc" {
+  name                 = "public-lc"
+  image_id             = "ami-0a0f1259dd1c90938"
+  instance_type        = "t2.micro"
+  key_name             = "teju09152_linux"
+  security_groups      = [aws_security_group.demo-vpc-sg.id]
+  associate_public_ip_address = true
+}
+
+# Application Load Balancer for public subnet
+resource "aws_lb" "public_alb" {
+  name               = "public-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.demo-vpc-sg.id]
+  subnets            = [aws_subnet.public_subnet_1.id, aws_subnet.public_subnet_2.id, aws_subnet.public_subnet_3.id]
+
+  enable_deletion_protection = false
+
+  enable_http2        = true
+  enable_cross_zone_load_balancing = true
+
+  tags = {
+    Name = "public-alb"
+  }
+}
+
+# ALB Target Group
+resource "aws_lb_target_group" "public_tg" {
+  name        = "public-tg"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.demo-vpc.id
+  target_type = "instance"
+
+  health_check {
+    path        = "/"
+    protocol    = "HTTP"
+    port        = "traffic-port"
+    interval    = 30
+    timeout     = 5
+  }
+
+  depends_on = [aws_lb.public_alb]
+}
+
+# ALB Listener
+resource "aws_lb_listener" "public_listener" {
+  load_balancer_arn = aws_lb.public_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "fixed-response"
+    fixed_response   = {
+      content_type = "text/plain"
+      status_code  = "200"
+      message_body = "OK"
+    }
+  }
+
+  depends_on = [aws_lb_target_group.public_tg]
+}
+
+# ASG Attachment to Target Group
+resource "aws_lb_target_group_attachment" "public_asg_attachment" {
+  target_group_arn = aws_lb_target_group.public_tg.arn
+  target_id        = aws_autoscaling_group.public_asg.name
+}
+
+# Auto Scaling Group for private subnet
+resource "aws_autoscaling_group" "private_asg" {
+  desired_capacity     = 2
+  max_size             = 3
+  min_size             = 1
+  vpc_zone_identifier  = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id, aws_subnet.private_subnet_3.id]
+  launch_configuration = aws_launch_configuration.private_lc.id
+
+  tag {
+    key                 = "Name"
+    value               = "private-asg-instance"
+    propagate_at_launch = true
+  }
+
+  health_check_type          = "EC2"
+  health_check_grace_period  = 300
+}
+
+# Launch Configuration for private ASG
+resource "aws_launch_configuration" "private_lc" {
+  name                 = "private-lc"
+  image_id             = "ami-0a0f1259dd1c90938"
+  instance_type        = "t2.micro"
+  key_name             = "teju09152_linux"
+  security_groups      = [aws_security_group.demo-vpc-sg.id]
+}
+
+# Application Load Balancer for private subnet
+resource "aws_lb" "private_alb" {
+  name               = "private-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.demo-vpc-sg.id]
+  subnets            = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id, aws_subnet.private_subnet_3.id]
+
+  enable_deletion_protection = false
+
+  enable_http2        = true
+  enable_cross_zone_load_balancing = true
+
+  tags = {
+    Name = "private-alb"
+  }
+}
+
+# ALB Target Group for private subnet
+resource "aws_lb_target_group" "private_tg" {
+  name        = "private-tg"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.demo-vpc.id
+  target_type = "instance"
+
+  health_check {
+    path        = "/"
+    protocol    = "HTTP"
+    port        = "traffic-port"
+    interval    = 30
+    timeout     = 5
+  }
+
+  depends_on = [aws_lb.private_alb]
+}
+
+# ALB Listener for private subnet
+resource "aws_lb_listener" "private_listener" {
+  load_balancer_arn = aws_lb.private_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "fixed-response"
+    fixed_response   = {
+      content_type = "text/plain"
+      status_code  = "200"
+      message_body = "OK"
+    }
+  }
+
+  depends_on = [aws_lb_target_group.private_tg]
+}
+
+# ASG Attachment to Target Group for private subnet
+resource "aws_lb_target_group_attachment" "private_asg_attachment" {
+  target_group_arn = aws_lb_target_group.private_tg.arn
+  target_id        = aws_autoscaling_group.private_asg.name
+}
+
+
+
